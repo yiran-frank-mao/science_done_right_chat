@@ -6,6 +6,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src/ ./src/
+COPY system_prompt.txt ./system_prompt.txt
 
 WORKDIR /app/src
 

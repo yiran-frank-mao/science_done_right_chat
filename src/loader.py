@@ -124,6 +124,15 @@ class EmbeddingLoader:
                 pass
 
         if content and isinstance(embedding, list) and len(embedding) > 0:
+            # Handle Orama nested embedding format: [magnitude, [actual_embedding_vector]]
+            # The embedding is stored as a 2-element list where:
+            # - Element 0: float (magnitude/normalization factor)
+            # - Element 1: list of floats (actual embedding vector)
+            if (len(embedding) == 2 
+                and isinstance(embedding[0], (int, float)) 
+                and isinstance(embedding[1], list)):
+                embedding = embedding[1]
+            
             # Check if elements are numbers
             if all(isinstance(x, (int, float)) for x in embedding):
                 self.chunks.append(Chunk(

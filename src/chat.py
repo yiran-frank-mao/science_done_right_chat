@@ -7,6 +7,35 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Default system prompt file path (can be overridden via environment variable)
+SYSTEM_PROMPT_PATH = os.getenv("SYSTEM_PROMPT_PATH", "/app/system_prompt.txt")
+
+
+def load_system_prompt() -> str:
+    """Load custom system prompt from file if it exists."""
+    base_prompt = "You are a helpful assistant. Use the provided context to answer the user's question. If the answer is not in the context, say you don't know."
+    
+    # Try multiple possible locations
+    possible_paths = [
+        SYSTEM_PROMPT_PATH,
+        "system_prompt.txt",
+        os.path.join(os.path.dirname(__file__), "..", "system_prompt.txt"),
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    custom_prompt = f.read().strip()
+                if custom_prompt:
+                    logger.info(f"Loaded system prompt from {path}")
+                    return f"{base_prompt}\n\n{custom_prompt}"
+            except Exception as e:
+                logger.warning(f"Failed to read system prompt from {path}: {e}")
+    
+    return base_prompt
+
+
 class ChatEngine:
     def __init__(self, chunks: List[Chunk]):
         self.chunks = chunks
@@ -65,7 +94,7 @@ class ChatEngine:
     def generate_response(self, query: str, context_chunks: List[Chunk], provider: str, api_key: str, **kwargs) -> str:
         context_text = "\n\n".join([f"Source: {c.source}\n{c.content}" for c in context_chunks])
 
-        system_prompt = "You are a helpful assistant. Use the provided context to answer the user's question. If the answer is not in the context, say you don't know."
+        system_prompt = load_system_prompt()
         user_prompt = f"Context:\n{context_text}\n\nQuestion: {query}"
 
         if provider == "OpenAI":

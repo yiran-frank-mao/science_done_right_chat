@@ -1,11 +1,26 @@
 import streamlit as st
 import os
+import re
 from loader import EmbeddingLoader
 from chat import ChatEngine
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def render_math(content: str) -> str:
+    """Convert LaTeX math notation to Streamlit-compatible format.
+    
+    Converts:
+    - \\[...\\] -> $$...$$ (block math)
+    - \\(...\\) -> $...$ (inline math)
+    """
+    # Convert block math: \[...\] -> $$...$$
+    content = re.sub(r'\\\[(.*?)\\\]', r'$$\1$$', content, flags=re.DOTALL)
+    # Convert inline math: \(...\) -> $...$
+    content = re.sub(r'\\\((.*?)\\\)', r'$\1$', content, flags=re.DOTALL)
+    return content
 
 st.set_page_config(page_title="Repo Chatbot", layout="wide")
 
@@ -84,7 +99,7 @@ if "messages" not in st.session_state:
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+        st.markdown(render_math(message["content"]))
 
 if prompt := st.chat_input("Ask a question about the repo"):
     # Validation
@@ -95,7 +110,7 @@ if prompt := st.chat_input("Ask a question about the repo"):
     else:
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
-            st.markdown(prompt)
+            st.markdown(render_math(prompt))
 
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
@@ -122,12 +137,12 @@ if prompt := st.chat_input("Ask a question about the repo"):
                         **chat_kwargs
                     )
 
-                    st.markdown(response)
+                    st.markdown(render_math(response))
 
                     with st.expander("Retrieved Context"):
                         for r in results:
                             st.markdown(f"**Source:** {r.source}")
-                            st.text(r.content[:500] + ("..." if len(r.content) > 500 else ""))
+                            st.markdown(render_math(r.content[:500] + ("..." if len(r.content) > 500 else "")))
                             st.divider()
 
                     st.session_state.messages.append({"role": "assistant", "content": response})

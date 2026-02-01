@@ -41,6 +41,41 @@ class EmbeddingLoader:
         return self.chunks
 
     def _parse_data(self, data: Any, filename: str):
+        # Strategy 0: Orama / Obsidian Copilot v3+ Format
+        # Structure: { "docs": { "docs": { "id": { ... } } }, "index": { "vectorIndexes": { "embedding": { "vectors": { "id": [...] } } } } }
+        if (isinstance(data, dict)
+            and "docs" in data
+            and "index" in data
+            and isinstance(data["docs"], dict)
+            and "docs" in data["docs"]):
+
+            logger.info(f"Detected Orama format in {filename}")
+
+            docs_map = data["docs"]["docs"]
+            # Vectors path: index -> vectorIndexes -> embedding -> vectors
+            vectors_map = {}
+            try:
+                vectors_map = data["index"]["vectorIndexes"]["embedding"]["vectors"]
+            except (KeyError, TypeError):
+                logger.warning(f"Could not find vectors in Orama file {filename}")
+                return
+
+            for doc_id, doc_data in docs_map.items():
+                if not isinstance(doc_data, dict):
+                    continue
+
+                # Content usually in 'content' or 'text'
+                content = doc_data.get("content") or doc_data.get("text")
+                # Source path
+                source = doc_data.get("filepath") or doc_data.get("path") or filename
+
+                # Get embedding using doc_id
+                embedding = vectors_map.get(doc_id)
+
+                if content and embedding:
+                    self._add_validated_chunk(content, embedding, source, doc_data)
+            return
+
         # Strategy 1: Dict of file paths -> object with chunks
         if isinstance(data, dict):
             for key, value in data.items():
@@ -69,6 +104,9 @@ class EmbeddingLoader:
         content = item.get("content") or item.get("text")
         embedding = item.get("embedding") or item.get("vector")
 
+        self._add_validated_chunk(content, embedding, source, item)
+
+    def _add_validated_chunk(self, content: Any, embedding: Any, source: str, metadata: Dict[str, Any]):
         # Ensure embedding is a list of floats
         if isinstance(embedding, str):
             try:
@@ -83,7 +121,7 @@ class EmbeddingLoader:
                     content=content,
                     embedding=embedding,
                     source=source,
-                    metadata=item
+                    metadata=metadata
                 ))
             else:
                  logger.debug(f"Skipping chunk with non-numeric embedding in {source}")

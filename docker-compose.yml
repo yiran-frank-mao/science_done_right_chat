@@ -8,3 +8,19 @@ services:
       - ./mock_repo:/data
     environment:
       - REPO_PATH=/data
+      # AI Model Configuration (optional - if set, the model setup sidebar will be hidden)
+      # Chat Model Settings
+      # - CHAT_PROVIDER=OpenAI              # Options: OpenAI, Azure OpenAI, Anthropic, Mock
+      # - CHAT_API_KEY=your-api-key
+      # - CHAT_MODEL=gpt-3.5-turbo          # Model name or Azure deployment name
+      # Azure-specific Chat Settings (only needed for Azure OpenAI)
+      # - CHAT_AZURE_ENDPOINT=https://your-resource.openai.azure.com/
+      # - CHAT_API_VERSION=2023-05-15
+      #
+      # Embedding Model Settings
+      # - EMBEDDING_PROVIDER=OpenAI         # Options: OpenAI, Azure OpenAI, Mock
+      # - EMBEDDING_API_KEY=                # Leave empty to use CHAT_API_KEY
+      # - EMBEDDING_MODEL=text-embedding-ada-002
+      # Azure-specific Embedding Settings (only needed for Azure OpenAI)
+      # - EMBEDDING_AZURE_ENDPOINT=https://your-resource.openai.azure.com/
+      # - EMBEDDING_API_VERSION=2023-05-15
